@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>드론 농약 방제 & 비료 살포량 계산기</title>
+    
+    <!-- 모바일 PWA 및 웹앱 전체화면 설정 -->
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="드론방제계산기">
+    <meta name="theme-color" content="#047857">
+    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/900/900834.png">
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts (Noto Sans KR) -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;600;700;900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+        /* Hide spin buttons for Firefox */
+        input[type='number'] {
+            -moz-appearance: textfield;
+        }
+        /* Hide spin buttons for Chrome, Safari, Edge, Opera */
+        input::-webkit-outer-spin-button,
+        input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+    </style>
+</head>
+<body class="bg-slate-100 text-slate-800 min-h-screen pb-12">
+
+    <!-- Header -->
+    <header class="bg-emerald-700 text-white sticky top-0 z-50 shadow-md">
+        <div class="max-w-2xl mx-auto px-4 py-3.5 flex justify-between items-center">
+            <div class="flex items-center space-x-2">
+                <i class="fa-solid font-bold fa-drone text-2xl text-emerald-300"></i>
+                <h1 class="text-xl font-extrabold tracking-tight">드론 방제·살포 계산기</h1>
+            </div>
+            <div>
+                <button onclick="resetAll()" class="bg-emerald-800 hover:bg-emerald-900 active:bg-emerald-950 text-emerald-100 text-xs px-3 py-1.5 rounded-lg border border-emerald-600 transition flex items-center gap-1.5 font-semibold shadow-sm">
+                    <i class="fa-solid fa-rotate-left"></i> 초기화
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="max-w-2xl mx-auto px-3 pt-3 space-y-4">
+
+        <!-- Navigation Tabs -->
+        <nav class="grid grid-cols-3 gap-1 bg-slate-200 p-1 rounded-xl shadow-inner text-sm font-bold">
+            <button id="tab-btn-pesticide" onclick="switchTab('pesticide')" class="tab-btn active py-2.5 rounded-lg transition text-center bg-white text-emerald-700 shadow-sm">
+                <i class="fa-solid fa-spray-can-sparkles block text-base mb-0.5"></i> 농약 살포량
+            </button>
+            <button id="tab-btn-fertilizer" onclick="switchTab('fertilizer')" class="tab-btn py-2.5 rounded-lg transition text-center text-slate-600 hover:text-slate-900">
+                <i class="fa-solid fa-wheat-awn block text-base mb-0.5"></i> 비료 살포량
+            </button>
+            <button id="tab-btn-dilution" onclick="switchTab('dilution')" class="tab-btn py-2.5 rounded-lg transition text-center text-slate-600 hover:text-slate-900">
+                <i class="fa-solid fa-vial block text-base mb-0.5"></i> 희석 배율
+            </button>
+        </nav>
+
+        <!-- TAB 1: 농약 살포량 계산기 -->
+        <section id="tab-pesticide" class="tab-content space-y-4">
+            <!-- 안내 문구 -->
+            <div class="bg-emerald-50 border-l-4 border-emerald-500 p-3.5 rounded-r-xl text-xs text-emerald-900 font-medium leading-relaxed">
+                <i class="fa-solid fa-circle-info text-emerald-600 mr-1 text-sm"></i>
+                <strong>기준 값</strong>을 입력하면 <strong>1평당, 200평당, 실제 필지 크기별</strong> 필요 약액량이 자동 산출됩니다.
+            </div>
+
+            <!-- 기준 정보 입력 카드 -->
+            <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 space-y-3">
+                <h2 class="text-base font-bold text-slate-800 border-b pb-2 flex items-center gap-2">
+                    <span class="w-2 h-5 bg-emerald-600 rounded-full inline-block"></span>
+                    1. 기준값 입력 (약제 가이드 기준)
+                </h2>
+                
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 mb-1">기준 면적 (평)</label>
+                        <div class="relative">
+                            <input type="number" id="pest-base-area" oninput="calcPesticide()" placeholder="예: 1000" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2.5 text-lg font-extrabold text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition">
+                            <span class="absolute right-3 top-3 text-xs font-bold text-slate-400">평</span>
+                        </div>
+                        <p class="text-[11px] text-slate-400 mt-1">기본 추천: 1,000평</p>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 mb-1">기준 희석액량 (L)</label>
+                        <div class="relative">
+                            <input type="number" id="pest-base-vol" oninput="calcPesticide()" placeholder="예: 15" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2.5 text-lg font-extrabold text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition">
+                            <span class="absolute right-3 top-3 text-xs font-bold text-slate-400">리터(L)</span>
+                        </div>
+                        <p class="text-[11px] text-slate-400 mt-1">기본 추천: 15 L</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 실제 방제 필지 및 드론 정보 -->
+            <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 space-y-3">
+                <h2 class="text-base font-bold text-slate-800 border-b pb-2 flex items-center gap-2">
+                    <span class="w-2 h-5 bg-emerald-600 rounded-full inline-block"></span>
+                    2. 방제 대상 필지 및 드론 설정
+                </h2>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-bold text-emerald-800 mb-1">방제할 필지 크기 (평)</label>
+                        <div class="relative">
+                            <input type="number" id="pest-target-area" oninput="calcPesticide()" placeholder="예: 850" class="w-full bg-emerald-50/60 border-2 border-emerald-400 rounded-xl px-3 py-2.5 text-lg font-extrabold text-emerald-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition">
+                            <span class="absolute right-3 top-3 text-xs font-bold text-emerald-600">평</span>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 mb-1">드론 탱크 용량 (L)</label>
+                        <div class="relative">
+                            <input type="number" id="pest-drone-tank" oninput="calcPesticide()" placeholder="예: 10" value="10" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2.5 text-lg font-extrabold text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition">
+                            <span class="absolute right-3 top-3 text-xs font-bold text-slate-400">L / 회</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 산출 결과 카드 -->
+            <div class="bg-slate-900 text-white p-5 rounded-2xl shadow-lg space-y-4">
+                <div class="flex justify-between items-center border-b border-slate-700 pb-2">
+                    <span class="text-xs font-bold text-emerald-400 uppercase tracking-wider"><i class="fa-solid fa-calculator"></i> 농약 살포량 계산 결과</span>
+                    <span id="pest-status-badge" class="text-[10px] bg-slate-800 text-slate-400 px-2 py-0.5 rounded-full border border-slate-700">입력 대기중</span>
+                </div>
+
+                <!-- 1평 & 200평 핵심 요약 -->
+                <div class="grid grid-cols-2 gap-3 text-center">
+                    <div class="bg-slate-800/80 p-3 rounded-xl border border-slate-700/80">
+                        <p class="text-xs font-semibold text-slate-400 mb-1">1평당 살포량</p>
+                        <p class="text-xl font-black text-emerald-300" id="res-pest-per-1">0 <span class="text-xs font-normal text-slate-300">mL</span></p>
+                    </div>
+                    <div class="bg-slate-800/80 p-3 rounded-xl border border-slate-700/80">
+                        <p class="text-xs font-semibold text-slate-400 mb-1">200평당 살포량</p>
+                        <p class="text-xl font-black text-emerald-300" id="res-pest-per-200">0 <span class="text-xs font-normal text-slate-300">L</span></p>
+                    </div>
+                </div>
+
+                <!-- 필지 총 필요량 강조 -->
+                <div class="bg-emerald-950/80 border border-emerald-600/50 p-4 rounded-xl flex justify-between items-center">
+                    <div>
+                        <p class="text-xs text-emerald-300 font-bold mb-0.5">해당 필지 총 약액 투입량</p>
+                        <p class="text-2xl font-black text-white" id="res-pest-target-total">0 <span class="text-sm font-semibold text-emerald-200">L</span></p>
+                    </div>
+                    <div class="text-right border-l border-emerald-800 pl-4">
+                        <p class="text-[11px] text-slate-300 mb-0.5">예상 드론 비행</p>
+                        <p class="text-lg font-extrabold text-emerald-400" id="res-pest-flights">0 <span class="text-xs font-normal text-slate-300">회</span></p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 2: 비료 살포량 계산기 -->
+        <section id="tab-fertilizer" class="tab-content space-y-4 hidden">
+            <!-- 안내 문구 -->
+            <div class="bg-amber-50 border-l-4 border-amber-500 p-3.5 rounded-r-xl text-xs text-amber-900 font-medium leading-relaxed">
+                <i class="fa-solid fa-circle-info text-amber-600 mr-1 text-sm"></i>
+                입포 형태(포대)와 weight(kg) 기준을 입력해 <strong>필지별 정확한 비료 필요량</strong>을 계산합니다.
+            </div>
+
+            <!-- 기준 정보 입력 카드 -->
+            <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 space-y-3">
+                <h2 class="text-base font-bold text-slate-800 border-b pb-2 flex items-center gap-2">
+                    <span class="w-2 h-5 bg-amber-500 rounded-full inline-block"></span>
+                    1. 비료 기준값 입력
+                </h2>
+                
+                <div class="grid grid-cols-3 gap-2">
+                    <div class="col-span-1">
+                        <label class="block text-xs font-bold text-slate-600 mb-1">기준 면적</label>
+                        <div class="relative">
+                            <input type="number" id="fert-base-area" oninput="calcFertilizer()" placeholder="예: 1000" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-2.5 py-2.5 text-base font-extrabold text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:bg-white transition">
+                            <span class="absolute right-2 top-3 text-[10px] font-bold text-slate-400">평</span>
+                        </div>
+                    </div>
+                    <div class="col-span-1">
+                        <label class="block text-xs font-bold text-slate-600 mb-1">기준 포수</label>
+                        <div class="relative">
+                            <input type="number" id="fert-base-bags" oninput="calcFertilizer()" placeholder="예: 3" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-2.5 py-2.5 text-base font-extrabold text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:bg-white transition">
+                            <span class="absolute right-2 top-3 text-[10px] font-bold text-slate-400">포</span>
+                        </div>
+                    </div>
+                    <div class="col-span-1">
+                        <label class="block text-xs font-bold text-slate-600 mb-1">1포당 규격</label>
+                        <div class="relative">
+                            <input type="number" id="fert-bag-weight" oninput="calcFertilizer()" placeholder="20" value="20" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-2.5 py-2.5 text-base font-extrabold text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:bg-white transition">
+                            <span class="absolute right-2 top-3 text-[10px] font-bold text-slate-400">kg</span>
+                        </div>
+                    </div>
+                </div>
+                <p class="text-xs text-slate-400 font-medium">* 기본 예시: 1,000평당 3포 (총 60kg)</p>
+            </div>
+
+            <!-- 실제 방제 필지 -->
+            <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 space-y-3">
+                <h2 class="text-base font-bold text-slate-800 border-b pb-2 flex items-center gap-2">
+                    <span class="w-2 h-5 bg-amber-500 rounded-full inline-block"></span>
+                    2. 살포 대상 필지 입력
+                </h2>
+
+                <div>
+                    <label class="block text-xs font-bold text-amber-900 mb-1">살포할 필지 크기 (평)</label>
+                    <div class="relative">
+                        <input type="number" id="fert-target-area" oninput="calcFertilizer()" placeholder="예: 1200" class="w-full bg-amber-50/60 border-2 border-amber-400 rounded-xl px-3 py-2.5 text-lg font-extrabold text-amber-950 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:bg-white transition">
+                        <span class="absolute right-3 top-3 text-xs font-bold text-amber-700">평</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 산출 결과 카드 -->
+            <div class="bg-slate-900 text-white p-5 rounded-2xl shadow-lg space-y-4">
+                <div class="flex justify-between items-center border-b border-slate-700 pb-2">
+                    <span class="text-xs font-bold text-amber-400 uppercase tracking-wider"><i class="fa-solid fa-calculator"></i> 비료 살포량 계산 결과</span>
+                    <span id="fert-status-badge" class="text-[10px] bg-slate-800 text-slate-400 px-2 py-0.5 rounded-full border border-slate-700">입력 대기중</span>
+                </div>
+
+                <!-- 1평 & 200평 단위 -->
+                <div class="grid grid-cols-2 gap-3 text-center">
+                    <div class="bg-slate-800/80 p-3 rounded-xl border border-slate-700/80">
+                        <p class="text-xs font-semibold text-slate-400 mb-1">1평당 살포량</p>
+                        <p class="text-lg font-black text-amber-300" id="res-fert-per-1">0 <span class="text-xs font-normal text-slate-300">g</span></p>
+                    </div>
+                    <div class="bg-slate-800/80 p-3 rounded-xl border border-slate-700/80">
+                        <p class="text-xs font-semibold text-slate-400 mb-1">200평당 투입량</p>
+                        <p class="text-lg font-black text-amber-300" id="res-fert-per-200">0 <span class="text-xs font-normal text-slate-300">kg</span></p>
+                        <p class="text-[11px] text-slate-400" id="res-fert-per-200-bags">(0 포)</p>
+                    </div>
+                </div>
+
+                <!-- 실제 필지 필요 비료량 -->
+                <div class="bg-amber-950/80 border border-amber-600/50 p-4 rounded-xl flex justify-between items-center">
+                    <div>
+                        <p class="text-xs text-amber-300 font-bold mb-0.5">해당 필지 총 비료 필요량</p>
+                        <p class="text-2xl font-black text-white" id="res-fert-target-kg">0 <span class="text-sm font-semibold text-amber-200">kg</span></p>
+                    </div>
+                    <div class="text-right border-l border-amber-800 pl-4">
+                        <p class="text-[11px] text-slate-300 mb-0.5">필요 포대 수</p>
+                        <p class="text-xl font-black text-amber-400" id="res-fert-target-bags">0 <span class="text-xs font-normal text-slate-300">포</span></p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 3: 희석 배율 계산기 -->
+        <section id="tab-dilution" class="tab-content space-y-4 hidden">
+            <!-- 안내 문구 -->
+            <div class="bg-sky-50 border-l-4 border-sky-500 p-3.5 rounded-r-xl text-xs text-sky-900 font-medium leading-relaxed">
+                <i class="fa-solid fa-circle-info text-sky-600 mr-1 text-sm"></i>
+                농약 라벨의 <strong>희석 비율(1:8 등)</strong> 또는 <strong>말통 기준(물 200L당 1병)</strong>으로 약제 필요한 용량을 즉시 계산합니다.
+            </div>
+
+            <!-- 모드 선택 (라디오 형태) -->
+            <div class="bg-white p-3 rounded-2xl shadow-sm border border-slate-200 flex gap-2 text-xs font-bold">
+                <button type="button" id="dil-mode-ratio-btn" onclick="setDilutionMode('ratio')" class="flex-1 py-2 rounded-xl border bg-sky-600 text-white border-sky-600 transition">
+                    1 : N 희석 배율 방식
+                </button>
+                <button type="button" id="dil-mode-bottle-btn" onclick="setDilutionMode('bottle')" class="flex-1 py-2 rounded-xl border bg-slate-100 text-slate-600 border-slate-200 transition">
+                    물 기준량 당 N병 방식
+                </button>
+            </div>
+
+            <!-- MODE A: 희석 배율 (예: 1:8, 1:500) -->
+            <div id="dil-panel-ratio" class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 space-y-3">
+                <h2 class="text-base font-bold text-slate-800 border-b pb-2 flex items-center gap-2">
+                    <span class="w-2 h-5 bg-sky-500 rounded-full inline-block"></span>
+                    희석 배율 입력 (1 : N)
+                </h2>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 mb-1">희석 배수 (N배)</label>
+                        <div class="relative">
+                            <span class="absolute left-3 top-3 text-xs font-bold text-slate-400">1 :</span>
+                            <input type="number" id="dil-ratio-val" oninput="calcDilution()" placeholder="예: 8" class="w-full bg-slate-50 border border-slate-300 rounded-xl pl-8 pr-3 py-2.5 text-lg font-extrabold text-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:bg-white transition">
+                        </div>
+                        <p class="text-[11px] text-slate-400 mt-1">드론 고농도 8~10배 / 일반 500배 등</p>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 mb-1">농약병 1병 용량 (mL)</label>
+                        <div class="relative">
+                            <input type="number" id="dil-bottle-spec" oninput="calcDilution()" placeholder="500" value="500" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2.5 text-lg font-extrabold text-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:bg-white transition">
+                            <span class="absolute right-3 top-3 text-xs font-bold text-slate-400">mL</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- MODE B: 기준 물량 당 N병 (예: 물 200L 당 1병) -->
+            <div id="dil-panel-bottle" class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 space-y-3 hidden">
+                <h2 class="text-base font-bold text-slate-800 border-b pb-2 flex items-center gap-2">
+                    <span class="w-2 h-5 bg-sky-500 rounded-full inline-block"></span>
+                    제품 안내사항 기준 입력
+                </h2>
+                <div class="grid grid-cols-3 gap-2">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 mb-1">기준 물량</label>
+                        <div class="relative">
+                            <input type="number" id="dil-std-water" oninput="calcDilution()" placeholder="예: 200" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-2 py-2.5 text-base font-extrabold text-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:bg-white transition">
+                            <span class="absolute right-2 top-3 text-[10px] font-bold text-slate-400">L</span>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 mb-1">약제 수량</label>
+                        <div class="relative">
+                            <input type="number" id="dil-std-bottles" oninput="calcDilution()" placeholder="예: 1" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-2 py-2.5 text-base font-extrabold text-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:bg-white transition">
+                            <span class="absolute right-2 top-3 text-[10px] font-bold text-slate-400">병</span>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 mb-1">1병당 용량</label>
+                        <div class="relative">
+                            <input type="number" id="dil-std-bottle-ml" oninput="calcDilution()" placeholder="500" value="500" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-2 py-2.5 text-base font-extrabold text-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:bg-white transition">
+                            <span class="absolute right-2 top-3 text-[10px] font-bold text-slate-400">mL</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 공통 target 물/희석액 입력 -->
+            <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 space-y-3">
+                <h2 class="text-base font-bold text-slate-800 border-b pb-2 flex items-center gap-2">
+                    <span class="w-2 h-5 bg-sky-500 rounded-full inline-block"></span>
+                    만들고자 하는 총 약액량 (L)
+                </h2>
+                <div>
+                    <label class="block text-xs font-bold text-sky-900 mb-1">현장에서 준비할 총 약액 수량</label>
+                    <div class="relative">
+                        <input type="number" id="dil-target-solution" oninput="calcDilution()" placeholder="예: 15" class="w-full bg-sky-50/60 border-2 border-sky-400 rounded-xl px-3 py-2.5 text-lg font-extrabold text-sky-950 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:bg-white transition">
+                        <span class="absolute right-3 top-3 text-xs font-bold text-sky-700">리터 (L)</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 산출 결과 카드 -->
+            <div class="bg-slate-900 text-white p-5 rounded-2xl shadow-lg space-y-4">
+                <div class="flex justify-between items-center border-b border-slate-700 pb-2">
+                    <span class="text-xs font-bold text-sky-400 uppercase tracking-wider"><i class="fa-solid fa-calculator"></i> 농약 희석 혼합 계산 결과</span>
+                    <span id="dil-status-badge" class="text-[10px] bg-slate-800 text-slate-400 px-2 py-0.5 rounded-full border border-slate-700">입력 대기중</span>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3 text-center">
+                    <div class="bg-slate-800/80 p-3 rounded-xl border border-slate-700/80">
+                        <p class="text-xs font-semibold text-slate-400 mb-1">필요 물 양</p>
+                        <p class="text-xl font-black text-sky-300" id="res-dil-water">0 <span class="text-xs font-normal text-slate-300">L</span></p>
+                    </div>
+                    <div class="bg-slate-800/80 p-3 rounded-xl border border-slate-700/80">
+                        <p class="text-xs font-semibold text-slate-400 mb-1">필요 농약 원액량</p>
+                        <p class="text-xl font-black text-sky-300" id="res-dil-pesticide-ml">0 <span class="text-xs font-normal text-slate-300">mL</span></p>
+                        <p class="text-[11px] text-slate-400" id="res-dil-pesticide-l">(0 L)</p>
+                    </div>
+                </div>
+
+                <div class="bg-sky-950/80 border border-sky-600/50 p-4 rounded-xl flex justify-between items-center">
+                    <div>
+                        <p class="text-xs text-sky-300 font-bold mb-0.5">투입할 농약 병 수</p>
+                        <p class="text-2xl font-black text-white" id="res-dil-bottles">0 <span class="text-sm font-semibold text-sky-200">병</span></p>
+                    </div>
+                    <div class="text-right border-l border-sky-800 pl-4">
+                        <p class="text-[11px] text-slate-300 mb-0.5">말통(20L) 기준</p>
+                        <p class="text-base font-bold text-sky-300" id="res-dil-mal-count">0 <span class="text-xs font-normal text-slate-300">말</span></p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <script>
+        // PWA Web App Manifest 동적 생성 (독립형 앱 모드 지원)
+        (function initPWA() {
+            const manifest = {
+                "name": "드론 농약 방제 & 비료 살포량 계산기",
+                "short_name": "드론방제계산기",
+                "start_url": window.location.href,
+                "display": "standalone",
+                "background_color": "#f1f5f9",
+                "theme_color": "#047857",
+                "icons": [
+                    {
+                        "src": "https://cdn-icons-png.flaticon.com/512/900/900834.png",
+                        "sizes": "512x512",
+                        "type": "image/png"
+                    }
+                ]
+            };
+            const stringManifest = JSON.stringify(manifest);
+            const blob = new Blob([stringManifest], {type: 'application/json'});
+            const manifestURL = URL.createObjectURL(blob);
+            const link = document.createElement('link');
+            link.rel = 'manifest';
+            link.href = manifestURL;
+            document.head.appendChild(link);
+        })();
+
+        // 현재 활성화된 희석 계산 모드 ('ratio' 또는 'bottle')
+        let currentDilutionMode = 'ratio';
+
+        // 탭 전환 logic
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('bg-white', 'text-emerald-700', 'shadow-sm');
+                btn.classList.add('text-slate-600');
+            });
+
+            document.getElementById(`tab-${tabName}`).classList.remove('hidden');
+            const activeBtn = document.getElementById(`tab-btn-${tabName}`);
+            activeBtn.classList.add('bg-white', 'text-emerald-700', 'shadow-sm');
+            activeBtn.classList.remove('text-slate-600');
+        }
+
+        // 1. 농약 살포량 계산 함수
+        function calcPesticide() {
+            const baseArea = parseFloat(document.getElementById('pest-base-area').value);
+            const baseVol = parseFloat(document.getElementById('pest-base-vol').value);
+            const targetArea = parseFloat(document.getElementById('pest-target-area').value);
+            const droneTank = parseFloat(document.getElementById('pest-drone-tank').value) || 10;
+
+            const badge = document.getElementById('pest-status-badge');
+
+            if (!baseArea || !baseVol || baseArea <= 0 || baseVol <= 0) {
+                badge.textContent = '기준값 필요';
+                badge.className = 'text-[10px] bg-amber-900/40 text-amber-300 px-2 py-0.5 rounded-full border border-amber-700';
+                resetPesticideOutputs();
+                return;
+            }
+
+            // 1평당 L 수량
+            const perPyeongL = baseVol / baseArea;
+            const perPyeongMl = perPyeongL * 1000;
+            const per200PyeongL = perPyeongL * 200;
+
+            document.getElementById('res-pest-per-1').innerHTML = `${formatNum(perPyeongMl, 2)} <span class="text-xs font-normal text-slate-300">mL</span>`;
+            document.getElementById('res-pest-per-200').innerHTML = `${formatNum(per200PyeongL, 2)} <span class="text-xs font-normal text-slate-300">L</span>`;
+
+            if (targetArea && targetArea > 0) {
+                const targetTotalVol = perPyeongL * targetArea;
+                const flights = Math.ceil(targetTotalVol / droneTank);
+
+                document.getElementById('res-pest-target-total').innerHTML = `${formatNum(targetTotalVol, 2)} <span class="text-sm font-semibold text-emerald-200">L</span>`;
+                document.getElementById('res-pest-flights').innerHTML = `${flights} <span class="text-xs font-normal text-slate-300">회 (탱크 ${droneTank}L 기준)</span>`;
+
+                badge.textContent = '계산 완료';
+                badge.className = 'text-[10px] bg-emerald-900/60 text-emerald-300 px-2 py-0.5 rounded-full border border-emerald-600';
+            } else {
+                document.getElementById('res-pest-target-total').innerHTML = `0 <span class="text-sm font-semibold text-emerald-200">L</span>`;
+                document.getElementById('res-pest-flights').innerHTML = `0 <span class="text-xs font-normal text-slate-300">회</span>`;
+                badge.textContent = '필지 입력 필요';
+                badge.className = 'text-[10px] bg-blue-900/40 text-blue-300 px-2 py-0.5 rounded-full border border-blue-700';
+            }
+        }
+
+        function resetPesticideOutputs() {
+            document.getElementById('res-pest-per-1').innerHTML = `0 <span class="text-xs font-normal text-slate-300">mL</span>`;
+            document.getElementById('res-pest-per-200').innerHTML = `0 <span class="text-xs font-normal text-slate-300">L</span>`;
+            document.getElementById('res-pest-target-total').innerHTML = `0 <span class="text-sm font-semibold text-emerald-200">L</span>`;
+            document.getElementById('res-pest-flights').innerHTML = `0 <span class="text-xs font-normal text-slate-300">회</span>`;
+        }
+
+        // 2. 비료 살포량 계산 함수
+        function calcFertilizer() {
+            const baseArea = parseFloat(document.getElementById('fert-base-area').value);
+            const baseBags = parseFloat(document.getElementById('fert-base-bags').value);
+            const bagWeight = parseFloat(document.getElementById('fert-bag-weight').value) || 20;
+            const targetArea = parseFloat(document.getElementById('fert-target-area').value);
+
+            const badge = document.getElementById('fert-status-badge');
+
+            if (!baseArea || !baseBags || baseArea <= 0 || baseBags <= 0) {
+                badge.textContent = '기준값 필요';
+                badge.className = 'text-[10px] bg-amber-900/40 text-amber-300 px-2 py-0.5 rounded-full border border-amber-700';
+                resetFertilizerOutputs();
+                return;
+            }
+
+            const totalBaseKg = baseBags * bagWeight;
+            const perPyeongKg = totalBaseKg / baseArea;
+            const perPyeongGram = perPyeongKg * 1000;
+
+            const per200Kg = perPyeongKg * 200;
+            const per200Bags = per200Kg / bagWeight;
+
+            document.getElementById('res-fert-per-1').innerHTML = `${formatNum(perPyeongGram, 1)} <span class="text-xs font-normal text-slate-300">g</span>`;
+            document.getElementById('res-fert-per-200').innerHTML = `${formatNum(per200Kg, 2)} <span class="text-xs font-normal text-slate-300">kg</span>`;
+            document.getElementById('res-fert-per-200-bags').innerText = `(${formatNum(per200Bags, 2)} 포)`;
+
+            if (targetArea && targetArea > 0) {
+                const targetTotalKg = perPyeongKg * targetArea;
+                const targetTotalBags = targetTotalKg / bagWeight;
+
+                document.getElementById('res-fert-target-kg').innerHTML = `${formatNum(targetTotalKg, 2)} <span class="text-sm font-semibold text-amber-200">kg</span>`;
+                document.getElementById('res-fert-target-bags').innerHTML = `${formatNum(targetTotalBags, 2)} <span class="text-xs font-normal text-slate-300">포</span>`;
+
+                badge.textContent = '계산 완료';
+                badge.className = 'text-[10px] bg-amber-900/60 text-amber-300 px-2 py-0.5 rounded-full border border-amber-600';
+            } else {
+                document.getElementById('res-fert-target-kg').innerHTML = `0 <span class="text-sm font-semibold text-amber-200">kg</span>`;
+                document.getElementById('res-fert-target-bags').innerHTML = `0 <span class="text-xs font-normal text-slate-300">포</span>`;
+                badge.textContent = '필지 입력 필요';
+                badge.className = 'text-[10px] bg-blue-900/40 text-blue-300 px-2 py-0.5 rounded-full border border-blue-700';
+            }
+        }
+
+        function resetFertilizerOutputs() {
+            document.getElementById('res-fert-per-1').innerHTML = `0 <span class="text-xs font-normal text-slate-300">g</span>`;
+            document.getElementById('res-fert-per-200').innerHTML = `0 <span class="text-xs font-normal text-slate-300">kg</span>`;
+            document.getElementById('res-fert-per-200-bags').innerText = `(0 포)`;
+            document.getElementById('res-fert-target-kg').innerHTML = `0 <span class="text-sm font-semibold text-amber-200">kg</span>`;
+            document.getElementById('res-fert-target-bags').innerHTML = `0 <span class="text-xs font-normal text-slate-300">포</span>`;
+        }
+
+        // 3. 희석 계산기 방식 선택
+        function setDilutionMode(mode) {
+            currentDilutionMode = mode;
+            const btnRatio = document.getElementById('dil-mode-ratio-btn');
+            const btnBottle = document.getElementById('dil-mode-bottle-btn');
+            const panelRatio = document.getElementById('dil-panel-ratio');
+            const panelBottle = document.getElementById('dil-panel-bottle');
+
+            if (mode === 'ratio') {
+                btnRatio.className = "flex-1 py-2 rounded-xl border bg-sky-600 text-white border-sky-600 transition shadow-sm";
+                btnBottle.className = "flex-1 py-2 rounded-xl border bg-slate-100 text-slate-600 border-slate-200 transition";
+                panelRatio.classList.remove('hidden');
+                panelBottle.classList.add('hidden');
+            } else {
+                btnBottle.className = "flex-1 py-2 rounded-xl border bg-sky-600 text-white border-sky-600 transition shadow-sm";
+                btnRatio.className = "flex-1 py-2 rounded-xl border bg-slate-100 text-slate-600 border-slate-200 transition";
+                panelBottle.classList.remove('hidden');
+                panelRatio.classList.add('hidden');
+            }
+            calcDilution();
+        }
+
+        // 3. 희석 배율 계산 함수
+        function calcDilution() {
+            const targetSolution = parseFloat(document.getElementById('dil-target-solution').value);
+            const badge = document.getElementById('dil-status-badge');
+
+            let neededPesticideMl = 0;
+            let bottleSpecMl = 500;
+
+            if (currentDilutionMode === 'ratio') {
+                const ratio = parseFloat(document.getElementById('dil-ratio-val').value);
+                bottleSpecMl = parseFloat(document.getElementById('dil-bottle-spec').value) || 500;
+
+                if (!ratio || ratio <= 0 || !targetSolution || targetSolution <= 0) {
+                    badge.textContent = '입력 필요';
+                    badge.className = 'text-[10px] bg-amber-900/40 text-amber-300 px-2 py-0.5 rounded-full border border-amber-700';
+                    resetDilutionOutputs();
+                    return;
+                }
+
+                // 희석액 총 수량(L) / N배 = 약액 원액 용량(L)
+                const pesticideL = targetSolution / ratio;
+                neededPesticideMl = pesticideL * 1000;
+
+            } else { // bottle mode
+                const stdWater = parseFloat(document.getElementById('dil-std-water').value);
+                const stdBottles = parseFloat(document.getElementById('dil-std-bottles').value);
+                bottleSpecMl = parseFloat(document.getElementById('dil-std-bottle-ml').value) || 500;
+
+                if (!stdWater || !stdBottles || stdWater <= 0 || stdBottles <= 0 || !targetSolution || targetSolution <= 0) {
+                    badge.textContent = '입력 필요';
+                    badge.className = 'text-[10px] bg-amber-900/40 text-amber-300 px-2 py-0.5 rounded-full border border-amber-700';
+                    resetDilutionOutputs();
+                    return;
+                }
+
+                const totalMlForStdWater = stdBottles * bottleSpecMl;
+                neededPesticideMl = (targetSolution / stdWater) * totalMlForStdWater;
+            }
+
+            const neededPesticideL = neededPesticideMl / 1000;
+            const waterL = targetSolution - neededPesticideL;
+            const bottleCount = neededPesticideMl / bottleSpecMl;
+            const malCount = targetSolution / 20; // 20L 말통 기준
+
+            document.getElementById('res-dil-water').innerHTML = `${formatNum(Math.max(0, waterL), 2)} <span class="text-xs font-normal text-slate-300">L</span>`;
+            document.getElementById('res-dil-pesticide-ml').innerHTML = `${formatNum(neededPesticideMl, 1)} <span class="text-xs font-normal text-slate-300">mL</span>`;
+            document.getElementById('res-dil-pesticide-l').innerText = `(${formatNum(neededPesticideL, 3)} L)`;
+            document.getElementById('res-dil-bottles').innerHTML = `${formatNum(bottleCount, 2)} <span class="text-sm font-semibold text-sky-200">병 (${bottleSpecMl}mL 규격)</span>`;
+            document.getElementById('res-dil-mal-count').innerHTML = `${formatNum(malCount, 1)} <span class="text-xs font-normal text-slate-300">말통</span>`;
+
+            badge.textContent = '계산 완료';
+            badge.className = 'text-[10px] bg-sky-900/60 text-sky-300 px-2 py-0.5 rounded-full border border-sky-600';
+        }
+
+        function resetDilutionOutputs() {
+            document.getElementById('res-dil-water').innerHTML = `0 <span class="text-xs font-normal text-slate-300">L</span>`;
+            document.getElementById('res-dil-pesticide-ml').innerHTML = `0 <span class="text-xs font-normal text-slate-300">mL</span>`;
+            document.getElementById('res-dil-pesticide-l').innerText = `(0 L)`;
+            document.getElementById('res-dil-bottles').innerHTML = `0 <span class="text-sm font-semibold text-sky-200">병</span>`;
+            document.getElementById('res-dil-mal-count').innerHTML = `0 <span class="text-xs font-normal text-slate-300">말</span>`;
+        }
+
+        // 숫자 포맷터 (소수점 자릿수 정리 및 천단위 콤마)
+        function formatNum(num, maxDecimals = 2) {
+            if (isNaN(num)) return '0';
+            const factor = Math.pow(10, maxDecimals);
+            const rounded = Math.round(num * factor) / factor;
+            return rounded.toLocaleString('ko-KR', { maximumFractionDigits: maxDecimals });
+        }
+
+        // 전체 입력창 초기화
+        function resetAll() {
+            document.querySelectorAll('input').forEach(input => {
+                if (input.id === 'pest-drone-tank') input.value = 10;
+                else if (input.id === 'fert-bag-weight') input.value = 20;
+                else if (input.id === 'dil-bottle-spec' || input.id === 'dil-std-bottle-ml') input.value = 500;
+                else input.value = '';
+            });
+
+            calcPesticide();
+            calcFertilizer();
+            calcDilution();
+        }
+
+        // 초기 시작
+        window.onload = function() {
+            calcPesticide();
+            calcFertilizer();
+            calcDilution();
+        };
+    </script>
+</body>
+</html>
+```eof
